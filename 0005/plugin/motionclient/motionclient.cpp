@@ -77,7 +77,6 @@ const char* KNOWN_BONE_NAMES[NUMBER_OF_KNOWN_BONES] = {
 };
 
 static std::uint8_t retain_count = 0;
-static bool motion_listening = false;
 static motion_listener_transform_data_t transform_data = { 0, nullptr, nullptr, nullptr };
 static std::mutex motionclient_lock_guard;
 
@@ -109,10 +108,8 @@ void motionclient_start(tm_string_repository_i* string_repository) {
 
 	transform_data.count = NUMBER_OF_KNOWN_BONES;
 
-	motion_listening = true;
-
 	// block
-	while (motion_listening) {
+	while (retain_count > 0) {
 
 		{
 			std::lock_guard<std::mutex> lock(motionclient_lock_guard);
@@ -137,7 +134,6 @@ void motionclient_stop(tm_string_repository_i* string_repository) {
 	retain_count--;
 
 	if (retain_count == 0) {
-		motion_listening = false;
 		transform_data.count = 0;
 
 		for (uint8_t i = 0; i < NUMBER_OF_KNOWN_BONES; i++) {
