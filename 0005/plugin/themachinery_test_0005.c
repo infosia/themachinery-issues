@@ -114,8 +114,8 @@ static void start(tm_gameplay_context_t *ctx)
     if (tm_string_repository != NULL && !bone_names_initialized) {
         for (uint8_t i = 0; i < 64; i++) {
             bone_names_hash_for_testing[i] = tm_string_repository->add(tm_string_repository->inst, BONE_NAMES[i]);
-            bone_names_initialized = true;
         }
+        bone_names_initialized = true;
     }
     else {
         TM_LOG("[WARN] tm_string_repository is not found");
