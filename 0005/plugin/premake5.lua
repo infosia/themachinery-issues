@@ -70,13 +70,23 @@ filter "configurations:Release"
     optimize "On"
 
 project "themachinery_test_0005"
-    location "build/themachinery_test_0004"
-    targetname "tm_themachinery_test_0004"
+    location "build/themachinery_test_0005"
+    targetname "tm_themachinery_test_0005"
     kind "SharedLib"
     language "C++"
     files {"*.inl", "*.h", "*.c"}
     sysincludedirs { "" }
-    links {"winmm.lib", "Ws2_32.lib"}
+    links {"test_0005_motionclient", "winmm.lib", "Ws2_32.lib"}
+    filter "platforms:Win64"
+        targetdir "$(TM_SDK_DIR)/bin/plugins"
+
+project "test_0005_motionclient"
+    location "build/motionclient"
+    targetname "test_0005_motionclient"
+    kind "StaticLib"
+    language "C++"
+    files {"motionclient/*.inl", "motionclient/*.h", "motionclient/*.cpp"}
+    sysincludedirs { "" }
     filter "platforms:Win64"
         targetdir "$(TM_SDK_DIR)/bin/plugins"
 

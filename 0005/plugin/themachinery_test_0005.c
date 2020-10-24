@@ -1,8 +1,3 @@
-// This is a skeleton for writing gameplay code in C. This file introduces the component 'Gameplay
-// Sample Empty', which when added to an entity will set-up a system that runs once a frame.
-// `tm_gameplay_context_t` is passed to start and update, it is used for interfacing with the apis
-// defined in `gameplay.h`.
-
 #include <plugins/gameplay/gameplay.h>
 
 #include <foundation/allocator.h>
@@ -10,12 +5,14 @@
 #include <foundation/localizer.h>
 #include <foundation/the_truth.h>
 #include <foundation/log.h>
+#include <foundation/task_system.h>
 #include <plugins/entity/entity.h>
 #include <plugins/entity/scene_tree_component.h>
 #include <foundation/string_repository.h>
 #include <the_machinery/component_interfaces/editor_ui_interface.h>
-
 #include <foundation/math.inl>
+
+#include "motionclient/motionclient.h"
 
 // short-hand for tm_gameplay_api
 static struct tm_gameplay_api *g;
@@ -25,83 +22,29 @@ static struct tm_logger_api *tm_logger_api;
 static struct tm_scene_tree_component_api *tm_scene_tree_component_api;
 static struct tm_string_repository_api *tm_string_repository_api;
 static struct tm_string_repository_i *tm_string_repository;
+static struct tm_task_system_api* tm_task_system_api;
 
 #define PLAYER_NAME_HASH TM_STATIC_HASH("player", 0xafff68de8a0598dfULL)
 #define NODE_NOT_FOUND UINT32_MAX
-
-static bool        bone_names_initialized = false;
-static uint64_t    bone_names_hash_for_testing[64];
-static const char* BONE_NAMES[64] = {
-"mixamorig:Hips",
-"mixamorig:LeftUpLeg",
-"mixamorig:LeftLeg",
-"mixamorig:LeftFoot",
-"mixamorig:LeftToeBase",
-"mixamorig:LeftToe_End",
-"mixamorig:RightUpLeg",
-"mixamorig:RightLeg",
-"mixamorig:RightFoot",
-"mixamorig:RightToeBase",
-"mixamorig:RightToe_End",
-"mixamorig:Spine",
-"mixamorig:Spine1",
-"mixamorig:Spine2",
-"mixamorig:LeftShoulder",
-"mixamorig:LeftArm",
-"mixamorig:LeftForeArm",
-"mixamorig:LeftHand",
-"mixamorig:LeftHandIndex1",
-"mixamorig:LeftHandIndex2",
-"mixamorig:LeftHandIndex3",
-"mixamorig:LeftHandIndex4",
-"mixamorig:LeftHandMiddle1",
-"mixamorig:LeftHandMiddle2",
-"mixamorig:LeftHandMiddle3",
-"mixamorig:LeftHandMiddle4",
-"mixamorig:LeftHandPinky1",
-"mixamorig:LeftHandPinky2",
-"mixamorig:LeftHandPinky3",
-"mixamorig:LeftHandPinky4",
-"mixamorig:LeftHandRing1",
-"mixamorig:LeftHandRing2",
-"mixamorig:LeftHandRing3",
-"mixamorig:LeftHandRing4",
-"mixamorig:LeftHandThumb1",
-"mixamorig:LeftHandThumb2",
-"mixamorig:LeftHandThumb3",
-"mixamorig:LeftHandThumb4",
-"mixamorig:Neck",
-"mixamorig:Head",
-"mixamorig:RightShoulder",
-"mixamorig:RightArm",
-"mixamorig:RightForeArm",
-"mixamorig:RightHand",
-"mixamorig:RightHandIndex1",
-"mixamorig:RightHandIndex2",
-"mixamorig:RightHandIndex3",
-"mixamorig:RightHandIndex4",
-"mixamorig:RightHandMiddle1",
-"mixamorig:RightHandMiddle2",
-"mixamorig:RightHandMiddle3",
-"mixamorig:RightHandMiddle4",
-"mixamorig:RightHandPinky1",
-"mixamorig:RightHandPinky2",
-"mixamorig:RightHandPinky3",
-"mixamorig:RightHandPinky4",
-"mixamorig:RightHandRing1",
-"mixamorig:RightHandRing2",
-"mixamorig:RightHandRing3",
-"mixamorig:RightHandRing4",
-"mixamorig:RightHandThumb1",
-"mixamorig:RightHandThumb2",
-"mixamorig:RightHandThumb3",
-"mixamorig:RightHandThumb4"
-};
 
 typedef struct tm_gameplay_state_o
 {
     tm_scene_tree_component_t *tm_scene_tree_component;
 } tm_gameplay_state_o;
+
+static void motionclient_run_task(void* data_, uint64_t task_id)
+{
+    motionclient_start(tm_string_repository);
+}
+
+static void motionclient_run()
+{
+    if (motionclient_started()) {
+        return;
+    }
+
+    tm_task_system_api->run_task(motionclient_run_task, NULL, "Start Motion Client");
+}
 
 static void start(tm_gameplay_context_t *ctx)
 {
@@ -110,16 +53,6 @@ static void start(tm_gameplay_context_t *ctx)
     if (player.index > 0) {
         state->tm_scene_tree_component = tm_entity_api->get_component(ctx->entity_ctx, player, tm_entity_api->lookup_component(ctx->entity_ctx, TM_TT_TYPE_HASH__SCENE_TREE_COMPONENT));
     }
-
-    if (tm_string_repository != NULL && !bone_names_initialized) {
-        for (uint8_t i = 0; i < 64; i++) {
-            bone_names_hash_for_testing[i] = tm_string_repository->add(tm_string_repository->inst, BONE_NAMES[i]);
-        }
-        bone_names_initialized = true;
-    }
-    else {
-        TM_LOG("[WARN] tm_string_repository is not found");
-    }
 }
 
 static void update(tm_gameplay_context_t *ctx)
@@ -127,20 +60,22 @@ static void update(tm_gameplay_context_t *ctx)
     tm_gameplay_state_o *state = ctx->state;
     tm_scene_tree_component_t* stc = state->tm_scene_tree_component;
 
-    if (stc != NULL && bone_names_initialized) {
-        for (uint32_t i = 0; i < 64; i++) {
-            const uint32_t node_index = tm_scene_tree_component_api->node_index_from_name(stc, bone_names_hash_for_testing[i], NODE_NOT_FOUND);
+    if (stc != NULL) {
+        motion_listener_transform_data_t* data = motionclient_poll();
+        for (uint32_t i = 0; i < data->count; i++) {
+            const uint32_t node_index = tm_scene_tree_component_api->node_index_from_name(stc, data->hashes[i], NODE_NOT_FOUND);
             if (node_index != NODE_NOT_FOUND) {
                 tm_transform_t transform = tm_scene_tree_component_api->local_transform(stc, node_index);
 
-                const float angle = 0.1f;
-                const tm_vec4_t q = tm_quaternion_from_rotation((tm_vec3_t) { 0, 1, 0 }, angle);
-                transform.rot = tm_quaternion_mul(q, transform.rot);
+                //const float angle = 0.1f;
+                //const tm_vec4_t q = tm_quaternion_from_rotation((tm_vec3_t) { 0, 1, 0 }, angle);
+                //transform.rot = tm_quaternion_mul(q, transform.rot);
+
+                transform.rot = tm_quaternion_mul(data->rotations[i], transform.rot);
 
                 tm_scene_tree_component_api->set_local_transform(stc, node_index, &transform);
             }
         }
-        return;
     }
 }
 
@@ -190,6 +125,8 @@ static void component_added(gameplay_component_manager_t *manager, tm_entity_t e
     };
 
     tm_entity_api->register_system(ctx->entity_ctx, &gameplay_system);
+
+    motionclient_run();
 }
 
 static void system_hot_reload(tm_entity_context_o *entity_ctx, tm_entity_system_i *system)
@@ -202,6 +139,8 @@ static void component_removed(gameplay_component_manager_t *manager, tm_entity_t
     const bool editor = tm_entity_api->get_blackboard_double(manager->entity_ctx, TM_ENTITY_BB__EDITOR, 0);
     if (editor)
         return;
+
+    motionclient_stop(tm_string_repository);
 
     tm_free(ctx->allocator, ctx->state, sizeof(*ctx->state));
     g->context->shutdown(ctx);
@@ -268,6 +207,7 @@ TM_DLL_EXPORT void tm_load_plugin(struct tm_api_registry_api *reg, bool load)
 
     tm_scene_tree_component_api = reg->get(TM_SCENE_TREE_COMPONENT_API_NAME);
     tm_logger_api = reg->get(TM_LOGGER_API_NAME);
+    tm_task_system_api = reg->get(TM_TASK_SYSTEM_API_NAME);
 
     tm_add_or_remove_implementation(reg, load, TM_THE_TRUTH_CREATE_TYPES_INTERFACE_NAME, create_truth_types);
     tm_add_or_remove_implementation(reg, load, TM_ENTITY_CREATE_COMPONENT_INTERFACE_NAME, create);
