@@ -66,12 +66,7 @@ static void update(tm_gameplay_context_t *ctx)
             const uint32_t node_index = tm_scene_tree_component_api->node_index_from_name(stc, data->hashes[i], NODE_NOT_FOUND);
             if (node_index != NODE_NOT_FOUND) {
                 tm_transform_t transform = tm_scene_tree_component_api->local_transform(stc, node_index);
-
-                //const float angle = 0.1f;
-                //const tm_vec4_t q = tm_quaternion_from_rotation((tm_vec3_t) { 0, 1, 0 }, angle);
-                //transform.rot = tm_quaternion_mul(q, transform.rot);
-
-                transform.rot = tm_quaternion_mul(data->rotations[i], transform.rot);
+                transform.rot = data->rotations[i];
 
                 tm_scene_tree_component_api->set_local_transform(stc, node_index, &transform);
             }

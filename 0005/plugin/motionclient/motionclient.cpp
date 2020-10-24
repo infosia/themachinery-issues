@@ -121,10 +121,11 @@ void motionclient_start(tm_string_repository_i* string_repository) {
 			const auto time = std::chrono::steady_clock::now();
 			const auto index = time.time_since_epoch().count() % NUMBER_OF_KNOWN_BONES;
 			const float angle = 0.1f;
-			transform_data.rotations[index] = tm_quaternion_from_rotation({ 0, 1, 0 }, angle);
+			const auto q = tm_quaternion_from_rotation({ 0, 1, 0 }, angle);
+			transform_data.rotations[index] = tm_quaternion_mul(q, transform_data.rotations[index]);
 		}
 
-		std::this_thread::sleep_for(std::chrono::seconds(1));
+		std::this_thread::sleep_for(std::chrono::milliseconds(66));
 	}
 }
 
