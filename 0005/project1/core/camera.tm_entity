@@ -1,0 +1,36 @@
+__type: "tm_entity"
+__uuid: "9e40df51-663d-83b4-8e6c-02a53b44cafa"
+name: "camera"
+components: [
+	{
+		__type: "tm_camera_component"
+		__uuid: "a1363b37-cab5-dec9-a404-11cf85f804f0"
+	}
+	{
+		__type: "tm_transform_component"
+		__uuid: "f9321695-f213-d534-bd1b-d432787e433f"
+		position: {
+			__uuid: "61d51760-762a-2069-708b-dac98f537c8e"
+		}
+		rotation: {
+			__uuid: "218076ae-e089-4010-cea9-ac41d288d435"
+		}
+		scale: {
+			__uuid: "984add21-313d-826c-d41a-01b2b3626037"
+		}
+	}
+	{
+		__type: "tm_link_component"
+		__uuid: "6ed6abad-7b0e-59fc-f090-ace3cc4784f5"
+		position: {
+			__uuid: "905a4111-79d6-d7fc-1fc8-89e649f5a9e0"
+		}
+		rotation: {
+			__uuid: "70fe1d5f-6ea1-9b0a-0293-61e841bf2c0e"
+		}
+		scale: {
+			__uuid: "fa1ba95d-a74e-df00-3d38-22e9939a5cc9"
+		}
+	}
+]
+__asset_uuid: "951ecf53-fd88-139c-00a2-163d132af6e0"

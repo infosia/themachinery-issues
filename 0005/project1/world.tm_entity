@@ -1,0 +1,223 @@
+__type: "tm_entity"
+__uuid: "e438e587-47ba-0cae-aaf4-3457f02d2116"
+name: "world"
+components: [
+	{
+		__type: "tm_transform_component"
+		__uuid: "8e51c784-f608-1154-7ad0-072f583dca85"
+		position: {
+			__uuid: "71db46cc-685a-3d7d-ec93-759fe071a8fa"
+		}
+		rotation: {
+			__uuid: "9ecbdbe6-c1e4-07b7-3db8-7317a282674f"
+		}
+		scale: {
+			__uuid: "86d1992b-eeba-0716-0f08-9ebd50873c9c"
+		}
+	}
+	{
+		__type: "tm_link_component"
+		__uuid: "2f44c2ad-6cc2-49cb-e2d9-67cc2c380eff"
+		position: {
+			__uuid: "b8e04434-4a54-9138-1e7e-791290e21741"
+		}
+		rotation: {
+			__uuid: "c497a7e4-1527-63c4-0f6d-6bd85f45afd3"
+		}
+		scale: {
+			__uuid: "c2d37baa-8174-6ad9-3395-897365ac46bb"
+		}
+	}
+	{
+		__type: "themachinery_test_0005_component"
+		__uuid: "29cc4d4c-2628-2916-89c5-7182ab9cdf68"
+	}
+	{
+		__type: "tm_graph_component"
+		__uuid: "25fc5724-65d9-3a25-ebb5-da2406635e5a"
+		graph: {
+			__uuid: "a9d38074-f9aa-bf08-b181-ceb987d82d18"
+			nodes: [
+				{
+					__uuid: "d41caf31-0f59-fa98-befc-1531aa8863e5"
+					type: "tm_init_event"
+					position_x: -213.7675170898438
+					position_y: -105.25
+				}
+				{
+					__uuid: "c20a5faf-b87e-a58d-78ed-ba8277b15fda"
+					type: "tm_simulate_tab_set_camera_entity"
+					position_x: 91.23248291015625
+					position_y: -59.25
+				}
+				{
+					__uuid: "1fadd7cb-5c34-c27d-fb7f-fb91feac8e4b"
+					type: "tm_scene_entity"
+					position_x: -234.7675170898438
+					position_y: -16.25
+				}
+			]
+			connections: [
+				{
+					__uuid: "a54c6bbb-1976-fc26-c262-ab5b7b9e2caf"
+					from_node: "d41caf31-0f59-fa98-befc-1531aa8863e5"
+					to_node: "c20a5faf-b87e-a58d-78ed-ba8277b15fda"
+				}
+				{
+					__uuid: "e130d8f1-c064-1cef-a265-b6f03701907d"
+					from_node: "1fadd7cb-5c34-c27d-fb7f-fb91feac8e4b"
+					to_node: "c20a5faf-b87e-a58d-78ed-ba8277b15fda"
+					from_connector_hash: "9831ca893b0d087d"
+					to_connector_hash: "9831ca893b0d087d"
+				}
+			]
+			data: [
+				{
+					__uuid: "6d39d338-78b1-a5ec-494d-e960ccc147f1"
+					to_node: "1fadd7cb-5c34-c27d-fb7f-fb91feac8e4b"
+					to_connector_hash: "9831ca893b0d087d"
+					data: {
+						__type: "tm_local_entity_asset_reference"
+						__uuid: "c1630d85-ad92-202d-17df-71af89a4f650"
+						entity: "b83406e0-73e3-1e36-5f00-2471e4d9894b"
+					}
+				}
+			]
+			interface: {
+				__uuid: "9a014e61-4e2e-cfa4-2f60-67184831d3cf"
+			}
+		}
+	}
+]
+children: [
+	{
+		__uuid: "d4ad6199-d95e-21af-9921-2f8a615b59c2"
+		__prototype_type: "tm_entity"
+		__prototype_uuid: "a54f6f5c-b3ee-6ab8-4f2b-03f9bd53b0b8"
+		components__instantiated: [
+			{
+				__type: "tm_link_component"
+				__uuid: "1e4edd67-d1da-08d5-0c6d-5cf78275c3b1"
+				__prototype_type: "tm_link_component"
+				__prototype_uuid: "2e15ea63-88b8-e14e-2a1f-e1465b443231"
+				position: {
+					__uuid: "36fde52b-410e-2d99-b33f-6d6b7a7c2645"
+					__prototype_type: "tm_position"
+					__prototype_uuid: "df04aaae-1849-1fbd-6dff-318e50ed2a76"
+					x: 10.66855239868164
+					y: 4.980159282684326
+					z: -8.197910308837891
+				}
+				rotation: {
+					__uuid: "e834a708-755e-38a4-a8fd-e4d00cdcff08"
+					__prototype_type: "tm_rotation"
+					__prototype_uuid: "b8841980-50d5-d771-c3e3-2c207e2d70f6"
+					x: -0.3159854114055634
+					y: -0.3596047461032867
+					z: -0.1308853924274445
+					w: 0.8681628108024597
+				}
+				scale: {
+					__uuid: "dea4b05a-452d-bd10-99e2-215a2048e0f0"
+					__prototype_type: "tm_scale"
+					__prototype_uuid: "38f582fa-5527-d6ad-5fd8-6660e85947e7"
+				}
+			}
+			{
+				__type: "tm_default_render_pipe_light_component"
+				__uuid: "b088f218-6dfc-5bcd-2b2d-2a85396ae96a"
+				__prototype_type: "tm_default_render_pipe_light_component"
+				__prototype_uuid: "731b66a9-720c-809b-b9d9-1b0867f94bbe"
+				type: 2
+				color: {
+					__uuid: "51db89b1-2aea-7d30-c3cf-b1f474501bf2"
+					__prototype_type: "tm_color_rgb"
+					__prototype_uuid: "dd891cfc-5175-6a7f-d536-e62802e8012c"
+				}
+				intensity: 2
+				cast_shadows: true
+			}
+		]
+	}
+	{
+		__uuid: "1deb56dc-f0a8-f596-8e88-3b2332335651"
+		__prototype_type: "tm_entity"
+		__prototype_uuid: "4e642af8-7ebd-a3d6-135e-8aad2e19d624"
+		components: [
+			{
+				__type: "tm_tag_component"
+				__uuid: "07072a3b-7218-720a-db76-9dfa5311b006"
+				tags: [
+					"f4d30d11-eca3-7847-91eb-a3d8b7349c08"
+				]
+			}
+		]
+		components__instantiated: [
+			{
+				__type: "tm_link_component"
+				__uuid: "a662d8cc-3a19-9072-ed20-692c1d0047b7"
+				__prototype_type: "tm_link_component"
+				__prototype_uuid: "d3cea376-2dff-351f-0f58-76214f60281c"
+				position: {
+					__uuid: "e29b3b93-88df-fb09-b16b-5454bb8ea11f"
+					__prototype_type: "tm_position"
+					__prototype_uuid: "9e56c585-d5d8-a079-87b3-ea0468ad6deb"
+					x: 0
+					z: -1
+				}
+				rotation: {
+					__uuid: "0a6443ff-e8e1-d63f-5bad-439565a1350f"
+					__prototype_type: "tm_rotation"
+					__prototype_uuid: "4f8a47dc-9be7-f4b1-e2e0-17f893b2c091"
+				}
+				scale: {
+					__uuid: "9c91716c-3d72-cd86-435c-4112810402cc"
+					__prototype_type: "tm_scale"
+					__prototype_uuid: "416342e1-87c4-ee44-affc-ad4837116635"
+					x: 0.009999999776482582
+					y: 0.009999999776482582
+					z: 0.009999999776482582
+				}
+			}
+		]
+	}
+	{
+		__uuid: "b83406e0-73e3-1e36-5f00-2471e4d9894b"
+		name: "Camera"
+		components: [
+			{
+				__type: "tm_transform_component"
+				__uuid: "f6056230-4965-2ec2-e7a8-9ffa99738e0f"
+				position: {
+					__uuid: "5126ce76-31ca-7734-a382-b0688157cfee"
+				}
+				rotation: {
+					__uuid: "f67e82f3-376d-6954-8aad-122c862f35af"
+				}
+				scale: {
+					__uuid: "d9b39dad-a840-909e-3a92-12450d5b068f"
+				}
+			}
+			{
+				__type: "tm_link_component"
+				__uuid: "3d8ce6ce-adab-361d-da98-e43dc45dfdd2"
+				position: {
+					__uuid: "f852d243-4755-2627-38e6-95b534a30f47"
+					y: 1
+					z: 1
+				}
+				rotation: {
+					__uuid: "c04d970b-1566-4e80-685d-5e3a3c8a931a"
+				}
+				scale: {
+					__uuid: "a5965049-4a1b-1002-3dc5-f64baeb90f9e"
+				}
+			}
+			{
+				__type: "tm_camera_component"
+				__uuid: "616f805a-9198-660f-5a4f-7d04379fdee4"
+			}
+		]
+	}
+]
+__asset_uuid: "7291309d-250d-54b2-47f9-9035d2d5339a"
