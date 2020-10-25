@@ -1,152 +1,305 @@
+#define CGLTF_IMPLEMENTATION
+#define CGLTF_VRM_v0_0_IMPLEMENTATION
+
 #include <cstdint>
 #include <chrono>
 #include <thread>
 #include <mutex>
+#include <unordered_map>
 
 #include "motionclient.h"
 #include <foundation/math.inl>
-#define NUMBER_OF_KNOWN_BONES 66
 
-const char* KNOWN_BONE_NAMES[NUMBER_OF_KNOWN_BONES] = {
-"Armature",
-"mixamorig:Hips",
-"mixamorig:LeftUpLeg",
-"mixamorig:LeftLeg",
-"mixamorig:LeftFoot",
-"mixamorig:LeftToeBase",
-"mixamorig:LeftToe_End",
-"mixamorig:RightUpLeg",
-"mixamorig:RightLeg",
-"mixamorig:RightFoot",
-"mixamorig:RightToeBase",
-"mixamorig:RightToe_End",
-"mixamorig:Spine",
-"mixamorig:Spine1",
-"mixamorig:Spine2",
-"mixamorig:LeftShoulder",
-"mixamorig:LeftArm",
-"mixamorig:LeftForeArm",
-"mixamorig:LeftHand",
-"mixamorig:LeftHandIndex1",
-"mixamorig:LeftHandIndex2",
-"mixamorig:LeftHandIndex3",
-"mixamorig:LeftHandIndex4",
-"mixamorig:LeftHandMiddle1",
-"mixamorig:LeftHandMiddle2",
-"mixamorig:LeftHandMiddle3",
-"mixamorig:LeftHandMiddle4",
-"mixamorig:LeftHandPinky1",
-"mixamorig:LeftHandPinky2",
-"mixamorig:LeftHandPinky3",
-"mixamorig:LeftHandPinky4",
-"mixamorig:LeftHandRing1",
-"mixamorig:LeftHandRing2",
-"mixamorig:LeftHandRing3",
-"mixamorig:LeftHandRing4",
-"mixamorig:LeftHandThumb1",
-"mixamorig:LeftHandThumb2",
-"mixamorig:LeftHandThumb3",
-"mixamorig:LeftHandThumb4",
-"mixamorig:Neck",
-"mixamorig:Head",
-"mixamorig:HeadTop_End",
-"mixamorig:RightShoulder",
-"mixamorig:RightArm",
-"mixamorig:RightForeArm",
-"mixamorig:RightHand",
-"mixamorig:RightHandIndex1",
-"mixamorig:RightHandIndex2",
-"mixamorig:RightHandIndex3",
-"mixamorig:RightHandIndex4",
-"mixamorig:RightHandMiddle1",
-"mixamorig:RightHandMiddle2",
-"mixamorig:RightHandMiddle3",
-"mixamorig:RightHandMiddle4",
-"mixamorig:RightHandPinky1",
-"mixamorig:RightHandPinky2",
-"mixamorig:RightHandPinky3",
-"mixamorig:RightHandPinky4",
-"mixamorig:RightHandRing1",
-"mixamorig:RightHandRing2",
-"mixamorig:RightHandRing3",
-"mixamorig:RightHandRing4",
-"mixamorig:RightHandThumb1",
-"mixamorig:RightHandThumb2",
-"mixamorig:RightHandThumb3",
-"mixamorig:RightHandThumb4"
+#include "osc/OscPacketListener.h"
+#include "ip/UdpSocket.h"
+#include "osc/OscOutboundPacketStream.h"
+#include "cgltf/cgltf.h"
+#include "cgltf_func.inl"
+
+static std::mutex motionclient_lock_guard;
+static struct tm_logger_api* tm_logger_api = nullptr;
+static struct tm_string_repository_i* tm_string_repository = nullptr;
+
+class VmcPacketListener : public osc::OscPacketListener {
+public:
+	VmcPacketListener(const vmc_options& options) : osc::OscPacketListener()
+		, options(options)
+		, vrmdata(nullptr)
+		, state{ false, false }
+		, humanoid_mapping{}
+		, transform_data{ 0, nullptr, nullptr, nullptr }
+	{
+		TM_LOG("[INFO] VmcPacketListener created");
+	}
+
+	virtual ~VmcPacketListener()
+	{
+		TM_LOG("[INFO] VmcPacketListener cleaning up");
+		for (const auto& iter : hash_to_index_map) {
+			tm_string_repository->remove(tm_string_repository->inst, iter.first);
+		}
+		TM_LOG("[INFO] VmcPacketListener destroyed");
+	}
+
+	virtual void ProcessMessage(const osc::ReceivedMessage& m,
+		const IpEndpointName& remoteEndpoint) override
+	{
+		try {
+			auto arg = m.ArgumentsBegin();
+			const auto address = m.AddressPattern();
+			if (std::strcmp(address, "/VMC/PING") == 0) {
+				return;
+			}
+			else if (!state.loaded && std::strcmp(address, "/VMC/Ext/OK") == 0 && arg->IsInt32()) {
+				const auto loaded = (arg++)->AsInt32Unchecked();
+				const auto calibrated = (arg++)->AsInt32Unchecked();
+				if (loaded == 1 && calibrated == 3) {
+					state.loaded = true;
+				}
+			}
+			else if (!state.received && state.loaded && std::strcmp(address, "/VMC/Ext/VRM") == 0) {
+				// Collect bone information. This should be done only once.
+				if (arg->IsString() && !state.received) {
+					const auto value = (arg++)->AsStringUnchecked();
+					if (strlen(value) > 0) {
+
+						cgltf_options parse_options = {};
+						parse_options.file.read = &vrm_file_read;
+
+						if (vrmdata != nullptr) {
+							cgltf_free(vrmdata);
+						}
+
+						const auto result = cgltf_parse_file(&parse_options, value, &vrmdata);
+
+						if (result == cgltf_result_success) {
+
+							// Constructs humanoid-bone => node mapping 
+							humanoid_mapping = vrm_get_humanoid_mapping(vrmdata);
+							std::lock_guard<std::mutex> lock(motionclient_lock_guard);
+							transform_data.availableCount = 0;
+
+							assert(vrmdata->vrm_v0_0.humanoid.humanBones_count < 255);
+
+							uint8_t stored_index = 0;
+							cgltf_size rootbone_index;
+							const auto rootbone_found = vrm_get_root_bone(vrmdata, options.rootbone, &rootbone_index);
+
+							// initialize hashes
+							const auto availableCount = static_cast<uint8_t>(vrmdata->vrm_v0_0.humanoid.humanBones_count + (rootbone_found ? 1 : 0));
+							transform_data.hashes = new uint64_t[availableCount];
+							transform_data.rotations = new tm_vec4_t[availableCount];
+							transform_data.translations = new tm_vec3_t[availableCount];
+
+							if (rootbone_found) {
+								const auto rootnode = vrmdata->nodes[rootbone_index];
+
+								const auto rootbone_hash = tm_string_repository->add(tm_string_repository->inst, options.rootbone.c_str());
+								hash_map.emplace(options.rootbone, rootbone_hash);
+								hash_to_index_map.emplace(rootbone_hash, stored_index);
+								transform_data.hashes[stored_index] = rootbone_hash;
+								transform_data.rotations[stored_index] = { rootnode.rotation[0], rootnode.rotation[1], rootnode.rotation[2], rootnode.rotation[3] };
+								transform_data.translations[stored_index] = { rootnode.translation[0], rootnode.translation[1], rootnode.translation[2] };
+								stored_index++;
+							}
+
+							for (cgltf_size i = 0; i < vrmdata->vrm_v0_0.humanoid.humanBones_count; i++) {
+								const auto bone = vrmdata->vrm_v0_0.humanoid.humanBones[i];
+								const auto name = vrmdata->nodes[bone.node].name;
+								const auto stored_hash = tm_string_repository->add(tm_string_repository->inst, name);
+								hash_map.emplace(name, stored_hash);
+								hash_to_index_map.emplace(stored_hash, stored_index);
+
+								transform_data.hashes[stored_index] = stored_hash;
+								transform_data.rotations[stored_index] = { 0, 0, 0, 1 };
+								transform_data.translations[stored_index] = { 0, 0, 0 };
+
+								// Consider first bone as a root bone when actual root bone is not found
+								if (i == 0 && !rootbone_found) {
+									options.rootbone = name;
+								}
+
+								stored_index++;
+							}
+
+							transform_data.availableCount = availableCount;
+
+							TM_LOG("[INFO] VmcPacketListener starts recording...");
+							state.received = true;
+						}
+					}
+				}
+			}
+			else if (state.received && std::strcmp(address, "/VMC/Ext/Root/Pos") == 0) {
+
+				const auto name = (arg++)->AsStringUnchecked();
+				const auto px = (arg++)->AsFloatUnchecked();
+				const auto py = (arg++)->AsFloatUnchecked();
+				const auto pz = (arg++)->AsFloatUnchecked();
+				const auto qx = (arg++)->AsFloatUnchecked();
+				const auto qy = (arg++)->AsFloatUnchecked();
+				const auto qz = (arg++)->AsFloatUnchecked();
+				const auto qw = (arg++)->AsFloatUnchecked();
+
+				(void)name; // unused
+
+				const auto hash  = getStringHash(options.rootbone);
+				const auto index = getStringIndex(hash);
+
+				{
+					std::lock_guard<std::mutex> lock(motionclient_lock_guard);
+					transform_data.hashes[index] = hash; // "Armature" etc
+					transform_data.translations[index] = { px, py, pz };
+					transform_data.rotations[index] = { qx, -qy, -qz, qw };
+				}
+			}
+			else if (state.received && std::strcmp(address, "/VMC/Ext/Bone/Pos") == 0) {
+
+				const auto name = (arg++)->AsStringUnchecked();
+				const auto px = (arg++)->AsFloatUnchecked();
+				const auto py = (arg++)->AsFloatUnchecked();
+				const auto pz = (arg++)->AsFloatUnchecked();
+				const auto qx = (arg++)->AsFloatUnchecked();
+				const auto qy = (arg++)->AsFloatUnchecked();
+				const auto qz = (arg++)->AsFloatUnchecked();
+				const auto qw = (arg++)->AsFloatUnchecked();
+
+				cgltf_node* node = vrm_get_humanoid_bone(name, &humanoid_mapping);
+
+				if (node != nullptr) {
+					const auto hash  = getStringHash(node->name); // "mixamorig:Hips" etc
+					const auto index = getStringIndex(hash);
+
+					{
+						std::lock_guard<std::mutex> lock(motionclient_lock_guard);
+						transform_data.hashes[index] = hash;
+						transform_data.translations[index] = { px, py, pz };
+						transform_data.rotations[index] = { qx, -qy, -qz, qw };
+					}
+				}
+			}
+
+			const auto time = std::chrono::steady_clock::now();
+			const auto delta = std::chrono::duration_cast<std::chrono::milliseconds>(time - lasttime_checked);
+			if (delta > options.interval) {
+				transform_data.availableCount = getAvailableCount(); // This practically enables polling
+				lasttime_checked = time;
+
+			}
+		}
+		catch (...) {
+
+		}
+	}
+
+	uint8_t getAvailableCount() {
+		return static_cast<uint8_t>(hash_map.size());
+	}
+
+	uint8_t getStringIndex(uint64_t hash) {
+		const auto iter = hash_to_index_map.find(hash);
+		assert(iter != hash_to_index_map.end());
+		return iter->second;
+	}
+
+	uint64_t getStringHash(std::string key) {
+		const auto iter = hash_map.find(key);
+		assert(iter != hash_map.end());
+		return iter->second;
+	}
+
+	motion_listener_transform_data_t transform_data;
+
+private:
+
+	cgltf_data* vrmdata;
+	vmc_humanoid_mapping humanoid_mapping;
+	vmc_state state;
+	vmc_options options;
+	std::chrono::steady_clock::time_point lasttime_checked;
+
+	std::unordered_map<std::string, uint64_t> hash_map;
+	std::unordered_map<uint64_t, uint8_t> hash_to_index_map;
+
 };
 
 static std::uint8_t retain_count = 0;
-static motion_listener_transform_data_t transform_data = { 0, nullptr, nullptr, nullptr };
-static std::mutex motionclient_lock_guard;
+static VmcPacketListener* packetListener = nullptr;
+static UdpListeningReceiveSocket* receiveSocket = nullptr;
+static std::uint16_t port = 39539;
 
 bool motionclient_started() {
 	return (retain_count > 0);
 }
 
-void motionclient_start(tm_string_repository_i* string_repository) {
+void motionclient_start(struct tm_string_repository_i* string_repository, struct tm_logger_api* tm_logger_api_) {
 	if (motionclient_started()) {
 		retain_count++;
 		return;
 	}
 
-	retain_count = 1;
-	transform_data.count = 0;
-	transform_data.hashes = new uint64_t[NUMBER_OF_KNOWN_BONES];
-	transform_data.translations = new tm_vec3_t[NUMBER_OF_KNOWN_BONES];
-	transform_data.rotations = new tm_vec4_t[NUMBER_OF_KNOWN_BONES];
+	tm_logger_api = tm_logger_api_;
+	tm_string_repository = string_repository;
 
-	for (uint8_t i = 0; i < NUMBER_OF_KNOWN_BONES; i++) {
-		transform_data.hashes[i] = string_repository->add(string_repository->inst, KNOWN_BONE_NAMES[i]);
-		transform_data.rotations[i] = {0, 0, 0, 1};
+	try {
+		vmc_options options = {};
+		options.rootbone = "ROOT";
+		options.interval = std::chrono::milliseconds(1000 / 30);
 
-		//const float angle = 0.1f;
-		//transform_data.rotations[i] = tm_quaternion_from_rotation({ 0, 1, 0 }, angle);
+		packetListener = new VmcPacketListener(options);
+		receiveSocket = new UdpListeningReceiveSocket(
+			IpEndpointName(IpEndpointName::ANY_ADDRESS, port),
+			packetListener);
 
-		transform_data.translations[i] = { 0, 0, 0 };
+		retain_count = 1;
+
+		receiveSocket->Run();
+
+		// retain_count should equal zero here because this should happens after vmcclient_stop().
+		assert(retain_count == 0);
+
+		delete receiveSocket;
+		receiveSocket = nullptr;
+
+		delete packetListener;
+		packetListener = nullptr;
 	}
-
-	transform_data.count = NUMBER_OF_KNOWN_BONES;
-
-	// block
-	while (retain_count > 0) {
-
-		{
-			std::lock_guard<std::mutex> lock(motionclient_lock_guard);
-
-			// randomly changes bone rotaion for testing
-			const auto time = std::chrono::steady_clock::now();
-			const auto index = time.time_since_epoch().count() % NUMBER_OF_KNOWN_BONES;
-			const float angle = 0.1f;
-			const auto q = tm_quaternion_from_rotation({ 0, 1, 0 }, angle);
-			transform_data.rotations[index] = tm_quaternion_mul(q, transform_data.rotations[index]);
-		}
-
-		std::this_thread::sleep_for(std::chrono::milliseconds(66));
+	catch (...) {
+		TM_LOG("Failed to start packet listener");
+		retain_count = 0;
 	}
 }
 
-void motionclient_stop(tm_string_repository_i* string_repository) {
+void motionclient_stop() {
 	if (!motionclient_started()) {
 		return;
 	}
 
 	retain_count--;
 
-	if (retain_count == 0) {
-		transform_data.count = 0;
+	if (retain_count == 0 && receiveSocket != nullptr && receiveSocket->IsBound()) {
+		receiveSocket->Break();
 
-		for (uint8_t i = 0; i < NUMBER_OF_KNOWN_BONES; i++) {
-			string_repository->remove(string_repository->inst, transform_data.hashes[i]);
+		try {
+			// ping listener in order to break the loop when listener is blocking
+			UdpTransmitSocket transmitSocket(IpEndpointName("127.0.0.1", port));
+
+			char buffer[64];
+			osc::OutboundPacketStream p(buffer, 64);
+			p << osc::BeginMessage("/VMC/PING") << osc::EndMessage;
+
+			transmitSocket.Send(p.Data(), p.Size());
 		}
-
-		delete transform_data.hashes;
-		delete transform_data.translations;
-		delete transform_data.rotations;
+		catch (...) {
+			// you can ignore this because listener may be already stopped depending on the break timing
+		}
 	}
 }
 
 motion_listener_transform_data_t* motionclient_poll() {
 	std::lock_guard<std::mutex> lock(motionclient_lock_guard);
-	return &transform_data;
+	if (packetListener == nullptr) {
+		return nullptr;
+	}
+	return &packetListener->transform_data;
 }

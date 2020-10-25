@@ -34,7 +34,7 @@ typedef struct tm_gameplay_state_o
 
 static void motionclient_run_task(void* data_, uint64_t task_id)
 {
-    motionclient_start(tm_string_repository);
+    motionclient_start(tm_string_repository, tm_logger_api);
 }
 
 static void motionclient_run()
@@ -62,14 +62,17 @@ static void update(tm_gameplay_context_t *ctx)
 
     if (stc != NULL) {
         motion_listener_transform_data_t* data = motionclient_poll();
-        for (uint32_t i = 0; i < data->count; i++) {
-            const uint32_t node_index = tm_scene_tree_component_api->node_index_from_name(stc, data->hashes[i], NODE_NOT_FOUND);
-            if (node_index != NODE_NOT_FOUND) {
-                tm_transform_t transform = tm_scene_tree_component_api->local_transform(stc, node_index);
-                transform.rot = data->rotations[i];
+        if (data != NULL) {
+            for (uint32_t i = 0; i < data->availableCount; i++) {
+                const uint32_t node_index = tm_scene_tree_component_api->node_index_from_name(stc, data->hashes[i], NODE_NOT_FOUND);
+                if (node_index != NODE_NOT_FOUND) {
+                    tm_transform_t transform = tm_scene_tree_component_api->local_transform(stc, node_index);
+                    transform.rot = data->rotations[i];
 
-                tm_scene_tree_component_api->set_local_transform(stc, node_index, &transform);
+                    tm_scene_tree_component_api->set_local_transform(stc, node_index, &transform);
+                }
             }
+            data->availableCount = 0; // This practically disables polling
         }
     }
 }
@@ -135,7 +138,7 @@ static void component_removed(gameplay_component_manager_t *manager, tm_entity_t
     if (editor)
         return;
 
-    motionclient_stop(tm_string_repository);
+    motionclient_stop();
 
     tm_free(ctx->allocator, ctx->state, sizeof(*ctx->state));
     g->context->shutdown(ctx);

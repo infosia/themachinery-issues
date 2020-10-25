@@ -85,7 +85,7 @@ project "test_0005_motionclient"
     targetname "test_0005_motionclient"
     kind "StaticLib"
     language "C++"
-    files {"motionclient/*.inl", "motionclient/*.h", "motionclient/*.cpp"}
+    files {"motionclient/*.inl", "motionclient/*.h", "motionclient/*.cpp", "osc/**.h", "osc/**.cpp", "ip/**.h", "ip/**.cpp", "cgltf/**.h", "cgltf/**.inl"}
     sysincludedirs { "" }
     filter "platforms:Win64"
         targetdir "$(TM_SDK_DIR)/bin/plugins"
