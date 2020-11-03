@@ -6,11 +6,13 @@
 #include <foundation/the_truth.h>
 #include <foundation/log.h>
 #include <foundation/task_system.h>
+#include <foundation/temp_allocator.h>
 #include <plugins/entity/entity.h>
 #include <plugins/entity/scene_tree_component.h>
+#include <plugins/the_machinery_shared/component_interfaces/editor_ui_interface.h>
 #include <foundation/string_repository.h>
-#include <the_machinery/component_interfaces/editor_ui_interface.h>
 #include <foundation/math.inl>
+#include <foundation/carray.inl>
 
 #include "motionclient/motionclient.h"
 
@@ -19,6 +21,7 @@ static struct tm_gameplay_api *g;
 static struct tm_entity_api *tm_entity_api;
 static struct tm_the_truth_api *tm_the_truth_api;
 static struct tm_logger_api *tm_logger_api;
+static struct tm_temp_allocator_api* tm_temp_allocator_api;
 static struct tm_scene_tree_component_api *tm_scene_tree_component_api;
 static struct tm_string_repository_api *tm_string_repository_api;
 static struct tm_string_repository_i *tm_string_repository;
@@ -29,7 +32,7 @@ static struct tm_task_system_api* tm_task_system_api;
 
 typedef struct tm_gameplay_state_o
 {
-    tm_scene_tree_component_t *tm_scene_tree_component;
+    uint64_t player_name;
 } tm_gameplay_state_o;
 
 static void motionclient_run_task(void* data_, uint64_t task_id)
@@ -49,25 +52,26 @@ static void motionclient_run()
 static void start(tm_gameplay_context_t *ctx)
 {
     tm_gameplay_state_o *state = ctx->state;
-    tm_entity_t player = g->entity->find_entity_with_tag(ctx, PLAYER_NAME_HASH);
-    if (player.index > 0) {
-        state->tm_scene_tree_component = tm_entity_api->get_component(ctx->entity_ctx, player, tm_entity_api->lookup_component(ctx->entity_ctx, TM_TT_TYPE_HASH__SCENE_TREE_COMPONENT));
-    }
+    state->player_name = PLAYER_NAME_HASH;
 }
 
 static void update(tm_gameplay_context_t *ctx)
 {
     tm_gameplay_state_o *state = ctx->state;
-    tm_scene_tree_component_t* stc = state->tm_scene_tree_component;
 
-    if (stc != NULL) {
-        motion_listener_transform_data_t* data = motionclient_poll();
-        if (data != NULL) {
-            for (uint32_t i = 0; i < data->availableCount; i++) {
-                const uint32_t node_index = tm_scene_tree_component_api->node_index_from_name(stc, data->hashes[i], NODE_NOT_FOUND);
+    motion_listener_transform_data_t* data = motionclient_poll();
+    TM_INIT_TEMP_ALLOCATOR(ta);
+    tm_entity_t* players = g->entity->find_entities_with_tag(ctx, state->player_name, ta);
+
+    const uint64_t players_count = tm_carray_size(players);
+    for (uint64_t i = 0; i < players_count; i++) {
+        tm_scene_tree_component_t* stc = tm_entity_api->get_component(ctx->entity_ctx, players[i], tm_entity_api->lookup_component(ctx->entity_ctx, TM_TT_TYPE_HASH__SCENE_TREE_COMPONENT));
+        if (stc != NULL && data != NULL) {
+            for (uint32_t j = 0; j < data->availableCount; j++) {
+                const uint32_t node_index = tm_scene_tree_component_api->node_index_from_name(stc, data->hashes[j], NODE_NOT_FOUND);
                 if (node_index != NODE_NOT_FOUND) {
                     tm_transform_t transform = tm_scene_tree_component_api->local_transform(stc, node_index);
-                    transform.rot = data->rotations[i];
+                    transform.rot = data->rotations[j];
 
                     tm_scene_tree_component_api->set_local_transform(stc, node_index, &transform);
                 }
@@ -75,6 +79,9 @@ static void update(tm_gameplay_context_t *ctx)
             data->availableCount = 0; // This practically disables polling
         }
     }
+
+    TM_SHUTDOWN_TEMP_ALLOCATOR(ta);
+
 }
 
 // Remainder of file is component set-up.
@@ -99,7 +106,7 @@ static void system_update(tm_entity_context_o *entity_ctx, tm_gameplay_context_t
 
     if (!ctx->started) {
         ctx->state = tm_alloc(ctx->allocator, sizeof(*ctx->state));
-        *ctx->state = (tm_gameplay_state_o){ NULL };
+        *ctx->state = (tm_gameplay_state_o){ 0 };
         start(ctx);
         ctx->started = true;
     }
@@ -188,7 +195,7 @@ static tm_ci_editor_ui_i editor_aspect = { 0 };
 static void create_truth_types(struct tm_the_truth_o *tt)
 {
     const uint64_t object_type = tm_the_truth_api->create_object_type(tt, TYPE__THEMACHINERY_TEST_0005_COMPONENT, 0, 0);
-    const uint64_t component = tm_the_truth_api->create_object_of_type(tt, tm_the_truth_api->object_type_from_name_hash(tt, TYPE_HASH__THEMACHINERY_TEST_0005_COMPONENT), TM_TT_NO_UNDO_SCOPE);
+    const tm_tt_id_t component = tm_the_truth_api->create_object_of_type(tt, tm_the_truth_api->object_type_from_name_hash(tt, TYPE_HASH__THEMACHINERY_TEST_0005_COMPONENT), TM_TT_NO_UNDO_SCOPE);
     (void)component;
 
     // This is needed in order for the component to show up in the editor.
@@ -203,6 +210,7 @@ TM_DLL_EXPORT void tm_load_plugin(struct tm_api_registry_api *reg, bool load)
     tm_entity_api = reg->get(TM_ENTITY_API_NAME);
     tm_the_truth_api = reg->get(TM_THE_TRUTH_API_NAME);
 
+    tm_temp_allocator_api = reg->get(TM_TEMP_ALLOCATOR_API_NAME);
     tm_scene_tree_component_api = reg->get(TM_SCENE_TREE_COMPONENT_API_NAME);
     tm_logger_api = reg->get(TM_LOGGER_API_NAME);
     tm_task_system_api = reg->get(TM_TASK_SYSTEM_API_NAME);
