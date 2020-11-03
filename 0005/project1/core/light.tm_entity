@@ -265,12 +265,12 @@ components: [
 						{
 							__uuid: "d9450011-a8be-383f-f192-3a395eed173e"
 							node: "f6fe50a0-5e17-10e3-8295-2a342f54c202"
-							validity_hash: "438ea5cf1dbac253"
+							validity_hash: "8335d1332cf319c2"
 							object: {
 								__type: "tm_shader_system_compiled_result"
-								__uuid: "e4c608b4-6508-0283-9bff-94fff5608045"
-								name: "438ea5cf1dbac253"
-								buffer: "f379a18b36443990"
+								__uuid: "e20ae0d2-8ef6-f36d-4ca6-6116131135df"
+								name: "8335d1332cf319c2"
+								buffer: "d8782179fb7b027e"
 							}
 						}
 					]

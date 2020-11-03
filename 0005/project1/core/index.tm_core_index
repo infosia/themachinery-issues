@@ -56,5 +56,26 @@ entries: [
 		object__type: "tm_entity"
 		version: 4
 	}
+	{
+		__uuid: "2d30926d-405a-f69a-1a49-0583ffb788c1"
+		core_id: "3ea210b24cb67ac0"
+		object: "37ddeda8-49a6-95e6-4506-7f2bb8c2a32f"
+		object__type: "tm_creation_graph"
+		version: 1
+	}
+	{
+		__uuid: "208dad33-25ea-5dce-582b-0fb2197a0629"
+		core_id: "ee1027b7cc52b3b9"
+		object: "3ad88a64-2b81-508b-4e84-4160cc346b12"
+		object__type: "tm_entity"
+		version: 1
+	}
+	{
+		__uuid: "f56ba790-ce9f-1100-4923-0c65ad13ac68"
+		core_id: "5a8e508b4fd11f52"
+		object: "f4f2b683-db2c-cb10-b6e5-0772d019e54f"
+		object__type: "tm_entity"
+		version: 1
+	}
 ]
 __asset_uuid: "db4a3a12-9370-eaef-fe81-e213fc686423"

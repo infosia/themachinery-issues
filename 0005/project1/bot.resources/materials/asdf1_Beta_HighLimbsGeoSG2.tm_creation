@@ -48,6 +48,21 @@ graph: {
 				}
 			}
 		]
+		cached_node_result__instantiated: [
+			{
+				__uuid: "ed93fec3-7806-f75e-82e1-36968178c840"
+				__prototype_type: "tm_graph_cached_node_result"
+				__prototype_uuid: "e104c843-70a9-86c9-5e7f-a63212c7a8fa"
+				node: "49cbc4af-8314-05fa-fabc-00884be0de7a"
+				validity_hash: "cdaddfb18d26dc2b"
+				object: {
+					__type: "tm_shader_system_compiled_result"
+					__uuid: "38b8746e-b957-3c45-713d-a5caa9be7691"
+					name: "cdaddfb18d26dc2b"
+					buffer: "b895bf68a8151d0f"
+				}
+			}
+		]
 	}
 }
 __asset_uuid: "8f15692c-7fe2-848f-7baa-173c8ea1f79a"
