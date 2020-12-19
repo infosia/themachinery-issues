@@ -1,0 +1,164 @@
+
+Microsoft (R) Windows Debugger Version 10.0.20153.1000 AMD64
+Copyright (c) Microsoft Corporation. All rights reserved.
+
+
+Loading Dump File [C:\Users\kota\AppData\Local\The Machinery\CrashDumps\the-machinery.exe.24052.dmp]
+User Mini Dump File with Full Memory: Only application data is available
+
+Symbol search path is: srv*
+Executable search path is: 
+Windows 10 Version 19041 MP (8 procs) Free x64
+Product: WinNt, suite: SingleUserTS
+Edition build lab: 19041.1.amd64fre.vb_release.191206-1406
+Machine Name:
+Debug session time: Sun Dec 20 04:45:23.000 2020 (UTC + 9:00)
+System Uptime: 10 days 21:04:05.725
+Process Uptime: 0 days 0:01:09.000
+................................................................
+................................................................
+................................................................
+.................
+Loading unloaded module list
+..................
+This dump file has an exception of interest stored in it.
+The stored exception information can be accessed via .ecxr.
+(5df4.39b8): Access violation - code c0000005 (first/second chance not available)
+For analysis of this file, run !analyze -v
+ntdll!NtWaitForMultipleObjects+0x14:
+00007ffe`9658cb04 c3              ret
+0:001> !analyze -v
+*******************************************************************************
+*                                                                             *
+*                        Exception Analysis                                   *
+*                                                                             *
+*******************************************************************************
+
+*** WARNING: Unable to verify checksum for tm_audio.tm_hot_reload.dll
+
+KEY_VALUES_STRING: 1
+
+    Key  : AV.Dereference
+    Value: NullPtr
+
+    Key  : AV.Fault
+    Value: Write
+
+    Key  : Analysis.CPU.mSec
+    Value: 1921
+
+    Key  : Analysis.DebugAnalysisProvider.CPP
+    Value: Create: 8007007e on DESKTOP-E0INJVA
+
+    Key  : Analysis.DebugData
+    Value: CreateObject
+
+    Key  : Analysis.DebugModel
+    Value: CreateObject
+
+    Key  : Analysis.Elapsed.mSec
+    Value: 40572
+
+    Key  : Analysis.Memory.CommitPeak.Mb
+    Value: 239
+
+    Key  : Analysis.System
+    Value: CreateObject
+
+    Key  : Timeline.OS.Boot.DeltaSec
+    Value: 939845
+
+    Key  : Timeline.Process.Start.DeltaSec
+    Value: 69
+
+    Key  : WER.OS.Branch
+    Value: vb_release
+
+    Key  : WER.OS.Timestamp
+    Value: 2019-12-06T14:06:00Z
+
+    Key  : WER.OS.Version
+    Value: 10.0.19041.1
+
+
+ADDITIONAL_XML: 1
+
+OS_BUILD_LAYERS: 1
+
+NTGLOBALFLAG:  0
+
+PROCESS_BAM_CURRENT_THROTTLED: 0
+
+PROCESS_BAM_PREVIOUS_THROTTLED: 0
+
+APPLICATION_VERIFIER_FLAGS:  0
+
+CONTEXT:  (.ecxr)
+rax=0000000000000029 rbx=00007ffe4c259f50 rcx=00000000ffffffff
+rdx=0000000000000000 rsi=00000000fffffffc rdi=00000000000012a1
+rip=00007ff6adc3ed08 rsp=000000845e9fecf0 rbp=0000000000000000
+ r8=0000000000000006  r9=000000845e9fec98 r10=0000000000000017
+r11=000000845e9fe720 r12=000003e8fb7e1340 r13=000004b0fef6af38
+r14=000003e8fb7e12d0 r15=000000000005ad39
+iopl=0         nv up ei pl nz na po nc
+cs=0033  ss=002b  ds=002b  es=002b  fs=0053  gs=002b             efl=00010206
+the_machinery+0xed08:
+00007ff6`adc3ed08 c70425000000000a000000 mov dword ptr [0],0Ah ds:00000000`00000000=????????
+Resetting default scope
+
+EXCEPTION_RECORD:  (.exr -1)
+ExceptionAddress: 00007ff6adc3ed08 (the_machinery+0x000000000000ed08)
+   ExceptionCode: c0000005 (Access violation)
+  ExceptionFlags: 00000000
+NumberParameters: 2
+   Parameter[0]: 0000000000000001
+   Parameter[1]: 0000000000000000
+Attempt to write to address 0000000000000000
+
+PROCESS_NAME:  the-machinery.exe
+
+WRITE_ADDRESS:  0000000000000000 
+
+ERROR_CODE: (NTSTATUS) 0xc0000005 - The instruction at 0x%p referenced memory at 0x%p. The memory could not be %s.
+
+EXCEPTION_CODE_STR:  c0000005
+
+EXCEPTION_PARAMETER1:  0000000000000001
+
+EXCEPTION_PARAMETER2:  0000000000000000
+
+STACK_TEXT:  
+00000084`5e9fecf0 00007ffe`4c237784     : 000039b8`00000000 0000088c`2cb032a4 00000000`00000000 00007ffe`4c259f10 : the_machinery+0xed08
+00000084`5e9ff170 00007ffe`4c240de1     : 00000000`0005ad3a 000004b0`feb6ce68 00000258`e1bfff60 000004b0`feb6cf90 : tm_vulkan_render_backend_tm_hot_reload+0x17784
+00000084`5e9ff1b0 00007ffe`611ae43e     : 00000000`00000000 00000084`5e9ff340 000004b1`10e6b10c 000003e8`fb7e1340 : tm_vulkan_render_backend_tm_hot_reload+0x20de1
+00000084`5e9ff240 00007ff6`adc316c0     : 00007ff6`add0d938 00007ff6`add0d938 00007ff6`ade6c7b8 00000258`e1c65820 : the_machinery_dll_tm_hot_reload+0x4e43e
+00000084`5e9ffbc0 00007ff6`adc33a21     : 00000000`000039b8 00000258`d6870000 00000000`00000000 00000000`000001ac : the_machinery+0x16c0
+00000084`5e9ffbf0 00007ff6`adc3b554     : 00000000`00000000 00000000`00000000 00000000`00000000 00000000`00000000 : the_machinery+0x3a21
+00000084`5e9ffcb0 00007ffe`94577034     : 00000000`00000000 00000000`00000000 00000000`00000000 00000000`00000000 : the_machinery+0xb554
+00000084`5e9ffd20 00007ffe`9653d0d1     : 00000000`00000000 00000000`00000000 00000000`00000000 00000000`00000000 : kernel32!BaseThreadInitThunk+0x14
+00000084`5e9ffd50 00000000`00000000     : 00000000`00000000 00000000`00000000 00000000`00000000 00000000`00000000 : ntdll!RtlUserThreadStart+0x21
+
+
+SYMBOL_NAME:  the_machinery+ed08
+
+MODULE_NAME: the_machinery
+
+IMAGE_NAME:  the-machinery.exe
+
+STACK_COMMAND:  ~1s ; .ecxr ; kb
+
+FAILURE_BUCKET_ID:  NULL_POINTER_WRITE_c0000005_the-machinery.exe!Unknown
+
+OS_VERSION:  10.0.19041.1
+
+BUILDLAB_STR:  vb_release
+
+OSPLATFORM_TYPE:  x64
+
+OSNAME:  Windows 10
+
+FAILURE_ID_HASH:  {9acd4762-6b0d-3bbc-7071-fcf392d22b2e}
+
+Followup:     MachineOwner
+---------
+
